@@ -1,0 +1,7 @@
+# ninja log v5
+4	713	7362628220352865	CMakeFiles/BIN_projekt.dir/main.cpp.obj	7a2da8864c348f08
+714	1145	7362628224588780	BIN_projekt.exe	612c71a2e637db39
+3	325	7362826926756926	build.ninja	2ebe0bd971e9676
+3	128	7362835923000491	CMakeFiles/BIN_projekt.dir/cgpROC.cpp.obj	70d8bf8c089265f1
+18	579	7362835927512967	CMakeFiles/BIN_projekt.dir/main.cpp.obj	7a2da8864c348f08
+579	791	7362835929576326	BIN_projekt.exe	476127bf71965cec
