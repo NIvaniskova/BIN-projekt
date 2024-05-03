@@ -27,7 +27,7 @@ typedef double nodetype;
 #include "cgp.h"
 #include "symb.h"
 #include "math.h"
-#include "cgpROC.cpp"
+#include "cgpROC.h"
 #include <vector>
 
 pchromosome population[MAX_POPSIZE];
@@ -213,7 +213,6 @@ inline void calc_fitness(int parentidx) {
 
             p_chrom = (chromosome) population[i] + params.geneoutidx;
 
-
             for (int k = 0; k < params.outputs; k++) {
 
                 desired.push_back(*(ptraindata + k));
@@ -225,8 +224,14 @@ inline void calc_fitness(int parentidx) {
             ptraindata += params.outputs;
         }
 
+        /*std::vector<double>::iterator ip;
+
+        // Using std::unique
+        ip = std::unique(obtained.begin(), obtained.end());
+        if (ip.size()*/
+
         /// specify threshold for classification
-        double threshold = get_threshold(desired, obtained);
+        double threshold = get_threshold(&desired, &obtained);
 
         int class_obtained;
         for (int i = 0; i < obtained.size(); i++) {
@@ -373,6 +378,7 @@ void print_eq(FILE *fout, chromosome p_chrom) {
 //
 int main(int argc, char *argv[]) {
     using namespace std;
+
     int blk, bestblk, data_items, parentidx, fittest_idx;
     unsigned long int generation;
     fitvaltype bestfitval;

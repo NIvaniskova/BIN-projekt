@@ -56,13 +56,6 @@ build CMakeFiles/BIN_projekt.dir/main.cpp.obj: CXX_COMPILER__BIN_projekt_unscann
   OBJECT_DIR = CMakeFiles\BIN_projekt.dir
   OBJECT_FILE_DIR = CMakeFiles\BIN_projekt.dir
 
-build CMakeFiles/BIN_projekt.dir/cgpROC.cpp.obj: CXX_COMPILER__BIN_projekt_unscanned_Debug C$:/Users/nivan/CLionProjects/BIN-projekt/cgpROC.cpp || cmake_object_order_depends_target_BIN_projekt
-  DEFINES = -DDONOTEVALUATEUNUSEDNODES
-  DEP_FILE = CMakeFiles\BIN_projekt.dir\cgpROC.cpp.obj.d
-  FLAGS = -g -std=gnu++98 -fdiagnostics-color=always
-  OBJECT_DIR = CMakeFiles\BIN_projekt.dir
-  OBJECT_FILE_DIR = CMakeFiles\BIN_projekt.dir
-
 
 # =============================================================================
 # Link build statements for EXECUTABLE target BIN_projekt
@@ -71,7 +64,7 @@ build CMakeFiles/BIN_projekt.dir/cgpROC.cpp.obj: CXX_COMPILER__BIN_projekt_unsca
 #############################################
 # Link the executable BIN_projekt.exe
 
-build BIN_projekt.exe: CXX_EXECUTABLE_LINKER__BIN_projekt_Debug CMakeFiles/BIN_projekt.dir/main.cpp.obj CMakeFiles/BIN_projekt.dir/cgpROC.cpp.obj
+build BIN_projekt.exe: CXX_EXECUTABLE_LINKER__BIN_projekt_Debug CMakeFiles/BIN_projekt.dir/main.cpp.obj
   FLAGS = -g
   LINK_LIBRARIES = -lkernel32 -luser32 -lgdi32 -lwinspool -lshell32 -lole32 -loleaut32 -luuid -lcomdlg32 -ladvapi32
   OBJECT_DIR = CMakeFiles\BIN_projekt.dir

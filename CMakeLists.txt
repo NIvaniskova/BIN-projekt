@@ -4,5 +4,5 @@ project(BIN_projekt)
 set(CMAKE_CXX_STANDARD 98)
 
 add_executable(BIN_projekt main.cpp cgp.h symb.h
-        cgpROC.cpp)
+        cgpROC.h)
 add_definitions(-DDONOTEVALUATEUNUSEDNODES)

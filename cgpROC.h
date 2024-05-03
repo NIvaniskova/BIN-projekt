@@ -2,24 +2,25 @@
 #include <algorithm>
 #include <iostream>
 
-double get_threshold( std::vector<double> desired,  std::vector<double> obtained){
-    std::vector<double>::iterator minimum = std::min_element(obtained.begin(), obtained.end());
+double get_threshold( std::vector<double>* desired,  std::vector<double>* obtained){
+    std::vector<double>::iterator minimum = std::min_element((*obtained).begin(), (*obtained).end());
 
-    double true_min;
-    if (minimum == obtained.end()) {
+    double true_min = *minimum;
+    /*if (minimum == obtained.end()) {
         return -1; // List was empty //TODO
     } else {
         true_min = minimum - obtained.begin();
-    }
+    }*/
 
-    std::vector<double>::iterator max = std::max_element(obtained.begin(), obtained.end());
 
-    double true_max;
-    if (max == obtained.end()) {
+    std::vector<double>::iterator max = std::max_element((*obtained).begin(), (*obtained).end());
+
+    double true_max = *max;
+    /*if (max == obtained.end()) {
         return -1; // List was empty //TODO
     } else {
         true_max = max - obtained.begin();
-    }
+    }*/
 
     double step = (true_max - true_min) / 10;
 
@@ -30,11 +31,11 @@ double get_threshold( std::vector<double> desired,  std::vector<double> obtained
     std::vector<double> fpr;
     for (double threshold = true_min; threshold < true_max; threshold + step){
         std::vector<int> class_obtained;
-        for (int i = 0; i < obtained.size(); i++){
-            if (obtained[i] < threshold){
-                class_obtained[i] = 0;
+        for (int i = 0; i <(*obtained).size(); i++){
+            if ((*obtained)[i] < threshold){
+                class_obtained.push_back(0);
             }else{
-                class_obtained[i] = 1;
+                class_obtained.push_back(1);
             }
         }
         int tp;
@@ -42,11 +43,11 @@ double get_threshold( std::vector<double> desired,  std::vector<double> obtained
         int fp;
         int tn;
         for (int j = 0; j < class_obtained.size(); j++){
-            if (class_obtained[j] == 1 and desired[j] == 1){
+            if (class_obtained[j] == 1 and (*desired)[j] == 1){
                 tp++;
-            }else if (class_obtained[j] == 0 and desired[j] == 1){
+            }else if (class_obtained[j] == 0 and (*desired)[j] == 1){
                 fn++;
-            }else if (class_obtained[j] == 1 and desired[j] == 0){
+            }else if (class_obtained[j] == 1 and (*desired)[j] == 0){
                 fp++;
             }else{
                 tn++;
