@@ -1,3 +1,0 @@
-C:/Users/nivan/CLionProjects/BIN-projekt/cmake-build-debug/CMakeFiles/BIN_projekt.dir
-C:/Users/nivan/CLionProjects/BIN-projekt/cmake-build-debug/CMakeFiles/edit_cache.dir
-C:/Users/nivan/CLionProjects/BIN-projekt/cmake-build-debug/CMakeFiles/rebuild_cache.dir
