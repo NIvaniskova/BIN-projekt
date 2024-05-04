@@ -36,7 +36,7 @@ typedef double nodetype;
 pchromosome population[MAX_POPSIZE];
 fitvaltype accuracies[MAX_POPSIZE];
 /// default parameters
-tparams params = {100 /*generations*/, 5 /*pop.size*/, 5 /*mut.genes*/, 0, 0, 15 /*cols*/, 1 /*rows*/, 3 /*lback*/,
+tparams params = {10 /*generations*/, 10 /*pop.size*/, 5 /*mut.genes*/, 0, 0, 5 /*cols*/, 3 /*rows*/, 1 /*lback*/,
                   2, 1, 9 /*functions*/};
 
 nodetype *nodeoutput; //array of node outputs used for CGP evaluation
@@ -186,7 +186,7 @@ inline void calc_fitness(int parentidx) {
         }
 
 
-
+        // candidate is not a parent from prev generation so we evaluate him
 #ifdef DONOTEVALUATEUNUSEDNODES
         usednodes[i] = used_nodes((chromosome) population[i], isused[i]);
 #endif
@@ -230,21 +230,6 @@ inline void calc_fitness(int parentidx) {
             ///next training vector
             ptraindata += params.outputs;
         }
-
-        /*std::vector<double>::iterator ip;
-
-        // Using std::unique
-        ip = std::unique(obtained.begin(), obtained.end());
-        if (ip.size()*/
-
-        // check if all values are the same
-        /*if (std::adjacent_find(obtained.begin(), obtained.end(), std::not_equal_to<double>()) == obtained.end()) {
-            accuracies[i] = 0;
-            /*FILE *chrfil1 = fopen("test.chr", "wb");
-            print_chrom(chrfil1, (chromosome)population[i]);
-            fclose(chrfil1);*/
-            //continue;
-        //}*/
 
         if (std::adjacent_find(obtained.begin(), obtained.end(), precisionEquality) == obtained.end()) {
             accuracies[i] = 0;
@@ -453,13 +438,14 @@ int main(int argc, char *argv[]) {
 
     int nodes;
     //fittest_idx = 0;
-    for (int i = 1; i < params.popsize; i++)
+    for (int i = 1; i < params.popsize; i++){
         // maximizing fitness function
         if (accuracies[i] > bestaccval) {
             bestaccval = accuracies[i];
             nodes = used_nodes((chromosome)population[i], isused[i]);
             fittest_idx = i;
         }
+    }
 
     printf("CGP parameters:\n   l-back=%d, rows=%d, cols=%d, functions=%d\n", params.lback, params.rows, params.cols,
            params.nodefuncs);
@@ -474,9 +460,15 @@ int main(int argc, char *argv[]) {
 
     string criteria[] = {"acc", "nodes"};
 
+    /*printf("Parent is candiadte: %d\n", fittest_idx);
+    for (int i = 0; i < params.popsize; i++) {
+        printf("Candidate: %d\t Accuracy %f\t Number of nodes: %d\n", i, accuracies[i], used_nodes((chromosome)population[i], isused[i]));
+    }*/
+
     // Evolutionary loop
     // -----------------------------------------------------------------------
     for (generation = 0; generation < params.maxgenerations; generation++) {
+        //printf("----------------------------------------------------\n");
         //printf("Generation: %-8d\n",generation);
         // ### Step 1 ###
         // Generate offsprings of the fittest individual
@@ -505,6 +497,10 @@ int main(int argc, char *argv[]) {
             candidates.push_back(i);
         }
 
+        /*for (int i = 0; i < params.popsize; i++) {
+            printf("Candidate: %d\t Accuracy %f\t Number of nodes: %d\n", i, accuracies[i], used_nodes((chromosome)population[i], isused[i]));
+        }*/
+
         /// get order of fitness criteria
         std::vector<std::string> criteria;
         criteria.push_back("acc");
@@ -515,87 +511,97 @@ int main(int argc, char *argv[]) {
         fitvaltype acc_max;
         int nodes_min;
         string first_criteria = criteria.front();
-        int count_erased = 0;
         while (true){
             /// leave only candidates performing best on the first criteria
             if (criteria[0] == "acc") {
-                acc_max = accuracies[0];
+                acc_max = accuracies[candidates[0]];
                 for (int j = 1; j < candidates.size(); j++){
                     if (accuracies[candidates[j]] > acc_max) {
                         acc_max = accuracies[candidates[j]];
+                        //printf("New max acc: %f of individual: %d\n", acc_max, candidates[j]);
                     }
                 }
-                for (int j = 1; j < candidates.size(); j++){
+                //printf("Final max acc: %f\n", acc_max);
+                std::vector<int> valuesToDelete;
+                for (int j = 0; j < candidates.size(); j++){
                     if (accuracies[candidates[j]] < acc_max) {
-                        // finding the position of the element in the vector
-                        int valueToBeDeleted = candidates[j];
-                        candidates.erase(std::remove(candidates.begin(), candidates.end(), valueToBeDeleted),candidates.end());
+                        //printf("Candidate %d has %f accuracy, which is less than %f and will be deleted\n", candidates[j], accuracies[candidates[j]], acc_max);
+                        valuesToDelete.push_back(candidates[j]);
                     }
+                }
+                for (int i = 0; i < valuesToDelete.size(); i++){
+                    candidates.erase(std::remove(candidates.begin(), candidates.end(), valuesToDelete[i]),candidates.end());
+                }
+                valuesToDelete.clear();
+                /*printf("Remaining candidates after elimination on criteria: %s\n", criteria[0].c_str());
+                for (int i = 0; i < candidates.size(); i++) {
+                    printf("Candidate: %d\t Accuracy %f\t Number of nodes: %d\n", candidates[i], accuracies[candidates[i]],
+                           used_nodes((chromosome)population[candidates[i]], isused[candidates[i]]));
+                }*/
+                if (acc_max > bestaccval){
+                    bestaccval = acc_max;
                 }
             }else if(criteria[0] == "nodes"){
-                nodes_min = usednodes[0];
+                nodes_min = used_nodes((chromosome)population[candidates[0]], isused[candidates[0]]);
                 int n_nodes;
                 for (int j = 1; j < candidates.size(); j++){
                     n_nodes = used_nodes((chromosome)population[candidates[j]], isused[candidates[j]]);
-                    usednodes;
+                    /*if (n_nodes == 0){
+                        FILE *chrfil3 = fopen("temp.chr", "wb");
+                        print_chrom(chrfil3, (chromosome) population[candidates[j]]);
+                        fclose(chrfil3);
+                    }*/
                     if (n_nodes < nodes_min) {
                         nodes_min = n_nodes;
+                        //printf("New min nodes: %d of individual: %d\n", nodes_min, candidates[j]);
                     }
                 }
-                for (int j = 1; j < candidates.size(); j++){
+                //printf("Final min nodes: %d\n", nodes_min);
+                std::vector<int> valuesToDelete;
+                for (int j = 0; j < candidates.size(); j++){
                     n_nodes = used_nodes((chromosome)population[candidates[j]], isused[candidates[j]]);
-                    if (n_nodes < nodes_min) {
-                        int valueToBeDeleted = candidates[j];
-                        candidates.erase(std::remove(candidates.begin(), candidates.end(), valueToBeDeleted),candidates.end());
+                    //printf("Candidate %d has %d nodes,compared to min_nodes %d\n", candidates[j], n_nodes,nodes_min);
+                    if (n_nodes > nodes_min) {
+                        //printf("Candidate %d has %d nodes, which is more than %d and will be deleted\n", candidates[j], n_nodes,nodes_min);
+                        valuesToDelete.push_back(candidates[j]);
                     }
+                }
+                for (int i = 0; i < valuesToDelete.size(); i++){
+                    candidates.erase(std::remove(candidates.begin(), candidates.end(), valuesToDelete[i]),candidates.end());
+                }
+                valuesToDelete.clear();
+                /*printf("Remaining candidates after elimination on criteria: %s\n", criteria[0].c_str());
+               for (int i = 0; i < candidates.size(); i++) {
+                   printf("Candidate: %d\t Accuracy %f\t Number of nodes: %d\n", candidates[i], accuracies[candidates[i]],
+                          used_nodes((chromosome)population[candidates[i]], isused[candidates[i]]));
+               }*/
+                if (nodes_min < bestblk){
+                    bestblk = nodes_min;
                 }
             }
-
+            /// delete used test criteria
+            criteria.erase(criteria.begin());
             /// if there is only one candidate left, return it
             if (candidates.size() == 1){
                 fittest_idx = candidates[0];
+                //printf("Last remaining candidate: %d\n", candidates[0]);
                 break;
             }
             /// if there is no fitness criteria, return randomly chosen candidate
             if (criteria.empty()){
                 random_shuffle(candidates.begin(), candidates.end());
                 fittest_idx = candidates[0];
+                //printf("Randomly chosen candidate: %d\n", candidates[0]);
                 break;
             }
-            /// delete first test criteria
-            criteria.erase(criteria.begin());
         }
 
-        bestaccval = acc_max;
-        bestblk = nodes_min;
         newparidx = fittest_idx;
 
-        printf("Generation: %-8lu\tIndividual: %d\tAccuracy: %f\tUsed nodes: %d\tCriteria: %s\n", generation, fittest_idx, bestaccval, usednodes[fittest_idx], first_criteria.c_str());
-
-
-        /*for (int i = 0; i < params.popsize; i++) {
-
-            /// get fitness criteria
-            fitvaltype acc = accuracies[i];
-            int smallest = used_nodes((chromosome) population[i], isused[i]);
-
-
-            if ((i == fittest_idx) || (bestaccval > acc)) continue;
-
-            // current individual is at least of the same quality as its parent
-            if (acc > bestaccval) {
-                //printf("Generation: %-8lu\tFitness: %f\n", generation, acc);
-
-                //print_chrom(stdout, (chromosome)population[i]);
-                //printf("Equation: "); print_eq(stdout, (chromosome)population[i]); printf("\n");
-
-                bestaccval = acc;
-                bestblk = smallest;
-                newparidx = i;
-
-            }
-
-        }*/
+        printf("Generation: %-8lu\tIndividual: %d\tAccuracy: %f\tUsed nodes: %d\tCriteria: %s\n", generation, fittest_idx, bestaccval,
+               used_nodes((chromosome)population[candidates[fittest_idx]], isused[candidates[fittest_idx]]), first_criteria.c_str());
+        //printf("Equation: "); print_eq(stdout, (chromosome)population[i]); printf("\n");
+        //print_chrom(stdout, (chromosome)population[i]);
 
         fittest_idx = newparidx;
 
@@ -604,20 +610,17 @@ int main(int argc, char *argv[]) {
     // End of evolution
     // -----------------------------------------------------------------------
     time = cpuTime() - time;
-    printf("Best fitness: %f\n", bestaccval);
+    printf("Best Accuracy: %f\t Best number of nodes: %d\n", bestaccval, bestblk);
     printf("Best individual: ");
     print_chrom(stdout, (chromosome) population[fittest_idx]);
     printf("Duration: %f Evaluations per sec: %f\n", time, (double) params.maxgenerations * (params.popsize - 1) / time);
 
-    if (bestaccval > 0.95) {
-        //save the solution
-        FILE *chrfil = fopen("result.chr", "wb");
-        print_chrom(chrfil, (chromosome) population[fittest_idx]);
-        fclose(chrfil);
-    }else{
-        printf("bestaccval: %f\n", bestaccval);
-    }
-    //printf("Fittest idx: %d\n", fittest_idx);
+
+    //save the solution
+    FILE *chrfil = fopen("result.chr", "wb");
+    print_chrom(chrfil, (chromosome) population[fittest_idx]);
+    fclose(chrfil);
+
 
     return 0;
 }
