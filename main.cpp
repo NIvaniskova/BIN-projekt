@@ -29,11 +29,14 @@ typedef double nodetype;
 #include "math.h"
 #include "cgpROC.h"
 #include <vector>
+#include <iostream>
+#include <algorithm>
+
 
 pchromosome population[MAX_POPSIZE];
-fitvaltype fitvalues[MAX_POPSIZE];
+fitvaltype accuracies[MAX_POPSIZE];
 /// default parameters
-tparams params = {50000 /*generations*/, 5 /*pop.size*/, 5 /*mut.genes*/, 0, 0, 15 /*cols*/, 1 /*rows*/, 15 /*lback*/,
+tparams params = {100 /*generations*/, 5 /*pop.size*/, 5 /*mut.genes*/, 0, 0, 15 /*cols*/, 1 /*rows*/, 3 /*lback*/,
                   2, 1, 9 /*functions*/};
 
 nodetype *nodeoutput; //array of node outputs used for CGP evaluation
@@ -119,43 +122,47 @@ inline void cgp_eval(chromosome p_chrom, int *isused) {
             fce = *p_chrom++;
             switch (fce) {
                 case 0:
-                    *pnodeout++ = 0.25;
-                    break;         //const
-                case 1:
-                    *pnodeout++ = 0.50;
-                    break;         //const
-                case 2:
-                    *pnodeout++ = 1.00;
-                    break;         //const
-                case 3:
-                    *pnodeout++ = in1;
-                    break;          //in1
-                case 4:
                     *pnodeout++ = in1 + in2;
                     break;    //in1 + in2
-                case 5:
+                case 1:
                     *pnodeout++ = in1 - in2;
                     break;    //in1 - in2
-                case 6:
+                case 2:
                     *pnodeout++ = in1 * in2;
                     break;    //in1 * in2
-                case 7:
+                case 3:
                     *pnodeout++ = (in2 == 0) ? 1e10 : in1 / in2;
                     break;     //in1 / in2
-                case 8:
+                case 4:
+                    *pnodeout++ = (in1 == 0) ? 1e10 : in2 / in1;
+                    break;     //in2 / in1
+                case 5:
+                    *pnodeout++ = in1;
+                    break;     //in1
+                case 6:
+                    *pnodeout++ = in1 * in1;
+                    break;    //in1 * in1
+                case 7:
                     *pnodeout++ = sin(in1);;
-                    break;   //sin(in1)
+                    break;     //sin(in1)
+                case 8:
+                    *pnodeout++ = cos(in1);;
+                    break;     //cos(in1)
                 default:
                     abort();
             }
         }
 }
 
+bool precisionEquality(double a, double b) {
+    return std::abs(a - b) >= 1e-9;
+}
+
 // Calculate fitness values
 // ---------------------------------------------
 // This function determines the fitness value of each candidate solution except
 // parental solution `parentidx`. The calculated fitness values are stored
-// in array denoted as `fitvalues`.
+// in array denoted as `accuracies`.
 //
 // In order to calculate the fitness value of each candidate solution the
 // response for each training data has to be evaluated. In this implementation
@@ -178,11 +185,13 @@ inline void calc_fitness(int parentidx) {
             continue;
         }
 
+
+
 #ifdef DONOTEVALUATEUNUSEDNODES
         usednodes[i] = used_nodes((chromosome) population[i], isused[i]);
 #endif
 
-        fitvalues[i] = 0;
+        accuracies[i] = 0;
     }
 
     ///determine and check response of each candidate solution
@@ -199,7 +208,6 @@ inline void calc_fitness(int parentidx) {
 
         std::vector<fitvaltype> desired, obtained;
 
-
         for (int l = 0; l < params.trainingvectors; l++) {
 
             ///copy the first part of a training vector to the primary inputs
@@ -209,7 +217,6 @@ inline void calc_fitness(int parentidx) {
             cgp_eval((chromosome) population[i], isused[i]);
 
             ///compute sum of absolute differences between the calculated and desired output values
-            fit = 0;
 
             p_chrom = (chromosome) population[i] + params.geneoutidx;
 
@@ -229,6 +236,20 @@ inline void calc_fitness(int parentidx) {
         // Using std::unique
         ip = std::unique(obtained.begin(), obtained.end());
         if (ip.size()*/
+
+        // check if all values are the same
+        /*if (std::adjacent_find(obtained.begin(), obtained.end(), std::not_equal_to<double>()) == obtained.end()) {
+            accuracies[i] = 0;
+            /*FILE *chrfil1 = fopen("test.chr", "wb");
+            print_chrom(chrfil1, (chromosome)population[i]);
+            fclose(chrfil1);*/
+            //continue;
+        //}*/
+
+        if (std::adjacent_find(obtained.begin(), obtained.end(), precisionEquality) == obtained.end()) {
+            accuracies[i] = 0;
+            continue;
+        }
 
         /// specify threshold for classification
         double threshold = get_threshold(&desired, &obtained);
@@ -262,7 +283,7 @@ inline void calc_fitness(int parentidx) {
         } else {
             accuracy = tp / (tp + fp);
         }
-        fitvalues[i] = accuracy;
+        accuracies[i] = accuracy;
     }
 }
 
@@ -291,10 +312,10 @@ int used_nodes(chromosome p_chrom, int *isused) {
             if (isused[idx] == 1) {
                 // the current node is marked, mark also the connected nodes
                 in = *pchrom--; // in2
-                if (fce > 3 && fce < 8)    // 2-input functions
+                if (fce < 5)    // 2-input functions
                     isused[in] = 1;
                 in = *pchrom--; // in1
-                if (fce > 2)
+                if (fce >= 5)
                     isused[in] = 1;
 
                 used++;
@@ -322,36 +343,36 @@ std::string *get_eq(chromosome p_chrom, int nodeidx) {
 
         switch (fce) {
             case 0:
-                *s = "0.25";
-                break;
-            case 1:
-                *s = "0.50";
-                break;
-            case 2:
-                *s = "1.00";
-                break;
-            case 3:
-                *s = *in1;
-                break;                               //in1
-            case 4:
                 *s = "(" + *in1 + " + " + *in2 + ")";
                 break;    //in1 + in2
-            case 5:
+            case 1:
                 *s = "(" + *in1 + " - " + *in2 + ")";
                 break;    //in1 - in2
-            case 6:
+            case 2:
                 *s = "(" + *in1 + " * " + *in2 + ")";
                 break;    //in1 * in2
-            case 7:
+            case 3:
                 *s = "(" + *in1 + " / " + *in2 + ")";
                 break;    //in1 / in2
-            case 8:
+            case 4:
+                *s = "(" + *in2 + " / " + *in1 + ")";
+                break;    //in2 / in1
+            case 5:
+                *s = *in1;
+                break;    //in1
+            case 6:
+                *s = "(" + *in1 + " * " + *in1 + ")";
+                break;    //in1 * in1
+            case 7:
                 *s = "sin(" + *in1 + ")";
-                break;                //sin(in1)
+                break;    //sin(in1)//
+            case 8:
+                *s = "cos(" + *in1 + ")";
+                break;    //cos(in1)
             default:
                 abort();
         }
-        delete in1, in2;
+        // delete in1, in2;
     }
 
     return s;
@@ -381,7 +402,7 @@ int main(int argc, char *argv[]) {
 
     int blk, bestblk, data_items, parentidx, fittest_idx;
     unsigned long int generation;
-    fitvaltype bestfitval;
+    fitvaltype bestaccval;
 
     params.accfitval = 0;
     strcpy(params.datafname, "banknotes.txt");
@@ -428,27 +449,34 @@ int main(int argc, char *argv[]) {
     // Evaluate the initial population and find the fittest candidate solution
     // that becomes parent
     calc_fitness(-1);
-    bestfitval = fitvalues[0];
-    fittest_idx = 0;
+    //bestaccval = 0;
+
+    int nodes;
+    //fittest_idx = 0;
     for (int i = 1; i < params.popsize; i++)
-        if (fitvalues[i] < bestfitval) {
-            bestfitval = fitvalues[i];
+        // maximizing fitness function
+        if (accuracies[i] > bestaccval) {
+            bestaccval = accuracies[i];
+            nodes = used_nodes((chromosome)population[i], isused[i]);
             fittest_idx = i;
         }
 
     printf("CGP parameters:\n   l-back=%d, rows=%d, cols=%d, functions=%d\n", params.lback, params.rows, params.cols,
            params.nodefuncs);
-    printf("   popsize=%d, mutgenes=%d, generations=%d, acceptable error=%f\n", params.popsize, params.mutations,
+    printf("   popsize=%d, mutgenes=%d, generations=%lu, acceptable error=%f\n", params.popsize, params.mutations,
            params.maxgenerations, params.accfitval);
 #ifdef DONOTEVALUATEUNUSEDNODES
     printf("   evalunused=false\n");
 #endif
-    printf("Evolutionary run:\n   initial fitness=%f\n", bestfitval);
+    printf("Evolutionary run:\n   initial fitness=%f\n", bestaccval);
+    printf("Generation: %d\t\tIndividual: %d\tAccuracy: %f\tUsed nodes: %d\n", char(-1), fittest_idx, bestaccval, nodes);
     double time = cpuTime();
+
+    string criteria[] = {"acc", "nodes"};
 
     // Evolutionary loop
     // -----------------------------------------------------------------------
-    for (int generation = 0; generation < params.maxgenerations; generation++) {
+    for (generation = 0; generation < params.maxgenerations; generation++) {
         //printf("Generation: %-8d\n",generation);
         // ### Step 1 ###
         // Generate offsprings of the fittest individual
@@ -462,57 +490,134 @@ int main(int argc, char *argv[]) {
         calc_fitness(fittest_idx);
         // ### Step 3 ###
         // Check if there is an offspring that should replace parental solution
+
+
         int newparidx = fittest_idx;
+
+        // TODO pareto fronta
+
+        /// elimination of candidates - LEXICASE
+
+        /// get candidates for elimination
+        //std::map<char, pchromosome> candidates;
+        std::vector<int> candidates;
         for (int i = 0; i < params.popsize; i++) {
-            fitvaltype fit = fitvalues[i];
-            if ((i == fittest_idx) || (bestfitval < fit)) continue;
+            candidates.push_back(i);
+        }
 
-            // current individual is at least of the same quality as its parent
-            if (fit > params.accfitval) {  //current individual does not
-                if (fit < bestfitval) {
-                    printf("Generation: %-8d\tFitness: %f\n", generation, fit);
-                    //print_chrom(stdout, (chromosome)population[i]);
-                    //printf("Equation: "); print_eq(stdout, (chromosome)population[i]); printf("\n");
-                }
-                bestfitval = fit;
-                bestblk = params.nodes;
-                newparidx = i;
-            } else {  //second optimization criterion - the number of utilized nodes
-#ifdef DONOTEVALUATEUNUSEDNODES
-                blk = usednodes[i];
-#else
-                blk = used_nodes((chromosome) population[i], isused[i]);
-#endif
-                if (blk <= bestblk) {
-                    if ((blk < bestblk) || (fit < bestfitval)) {
-                        //printf("Generation: %-8d\tFitness: %f\tNodes: %d\n",generation, fit, blk);
-                        //printf("Equation: "); print_eq(stdout, (chromosome)population[i]); printf("\n");
+        /// get order of fitness criteria
+        std::vector<std::string> criteria;
+        criteria.push_back("acc");
+        criteria.push_back("nodes");
+        random_shuffle(criteria.begin(), criteria.end());
+
+
+        fitvaltype acc_max;
+        int nodes_min;
+        string first_criteria = criteria.front();
+        int count_erased = 0;
+        while (true){
+            /// leave only candidates performing best on the first criteria
+            if (criteria[0] == "acc") {
+                acc_max = accuracies[0];
+                for (int j = 1; j < candidates.size(); j++){
+                    if (accuracies[candidates[j]] > acc_max) {
+                        acc_max = accuracies[candidates[j]];
                     }
-
-                    bestfitval = fit;
-                    bestblk = blk;
-                    newparidx = i;
+                }
+                for (int j = 1; j < candidates.size(); j++){
+                    if (accuracies[candidates[j]] < acc_max) {
+                        // finding the position of the element in the vector
+                        int valueToBeDeleted = candidates[j];
+                        candidates.erase(std::remove(candidates.begin(), candidates.end(), valueToBeDeleted),candidates.end());
+                    }
+                }
+            }else if(criteria[0] == "nodes"){
+                nodes_min = usednodes[0];
+                int n_nodes;
+                for (int j = 1; j < candidates.size(); j++){
+                    n_nodes = used_nodes((chromosome)population[candidates[j]], isused[candidates[j]]);
+                    usednodes;
+                    if (n_nodes < nodes_min) {
+                        nodes_min = n_nodes;
+                    }
+                }
+                for (int j = 1; j < candidates.size(); j++){
+                    n_nodes = used_nodes((chromosome)population[candidates[j]], isused[candidates[j]]);
+                    if (n_nodes < nodes_min) {
+                        int valueToBeDeleted = candidates[j];
+                        candidates.erase(std::remove(candidates.begin(), candidates.end(), valueToBeDeleted),candidates.end());
+                    }
                 }
             }
 
+            /// if there is only one candidate left, return it
+            if (candidates.size() == 1){
+                fittest_idx = candidates[0];
+                break;
+            }
+            /// if there is no fitness criteria, return randomly chosen candidate
+            if (criteria.empty()){
+                random_shuffle(candidates.begin(), candidates.end());
+                fittest_idx = candidates[0];
+                break;
+            }
+            /// delete first test criteria
+            criteria.erase(criteria.begin());
         }
+
+        bestaccval = acc_max;
+        bestblk = nodes_min;
+        newparidx = fittest_idx;
+
+        printf("Generation: %-8lu\tIndividual: %d\tAccuracy: %f\tUsed nodes: %d\tCriteria: %s\n", generation, fittest_idx, bestaccval, usednodes[fittest_idx], first_criteria.c_str());
+
+
+        /*for (int i = 0; i < params.popsize; i++) {
+
+            /// get fitness criteria
+            fitvaltype acc = accuracies[i];
+            int smallest = used_nodes((chromosome) population[i], isused[i]);
+
+
+            if ((i == fittest_idx) || (bestaccval > acc)) continue;
+
+            // current individual is at least of the same quality as its parent
+            if (acc > bestaccval) {
+                //printf("Generation: %-8lu\tFitness: %f\n", generation, acc);
+
+                //print_chrom(stdout, (chromosome)population[i]);
+                //printf("Equation: "); print_eq(stdout, (chromosome)population[i]); printf("\n");
+
+                bestaccval = acc;
+                bestblk = smallest;
+                newparidx = i;
+
+            }
+
+        }*/
+
         fittest_idx = newparidx;
+
     }
 
     // End of evolution
     // -----------------------------------------------------------------------
     time = cpuTime() - time;
-    printf("Best fitness: %f\n", bestfitval);
+    printf("Best fitness: %f\n", bestaccval);
     printf("Best individual: ");
     print_chrom(stdout, (chromosome) population[fittest_idx]);
-    printf("Duration: %f Evaluations per sec: %f\n", time, params.maxgenerations * (params.popsize - 1) / time);
+    printf("Duration: %f Evaluations per sec: %f\n", time, (double) params.maxgenerations * (params.popsize - 1) / time);
 
-    if (bestfitval < 0.5) {
+    if (bestaccval > 0.95) {
         //save the solution
         FILE *chrfil = fopen("result.chr", "wb");
         print_chrom(chrfil, (chromosome) population[fittest_idx]);
         fclose(chrfil);
+    }else{
+        printf("bestaccval: %f\n", bestaccval);
     }
+    //printf("Fittest idx: %d\n", fittest_idx);
 
     return 0;
 }
