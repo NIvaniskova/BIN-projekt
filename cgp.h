@@ -37,6 +37,7 @@ typedef struct {
   int geneoutidx;
   int chromosomesz;
   char datafname[128];
+  char bestchromosomefname[128];
 } tparams;
 
 typedef struct { 
@@ -119,7 +120,7 @@ void parse_options(int argc, char* argv[])
     int i;
 
     //parse options
-    while ((i = getopt_long(argc,argv,"g:r:c:m:l:e:p:", 0, 0)) != -1) 
+    while ((i = getopt_long(argc,argv,"g:r:c:m:l:e:p:f:", 0, 0)) != -1)
     {
         if (i == -1) break;
         switch (i) {
@@ -150,7 +151,10 @@ void parse_options(int argc, char* argv[])
            case 'e': //acceptable error
                 params.accfitval = atof(optarg);
                 break;
-              
+            case 'f': //best chromosome fname
+                strcpy(params.bestchromosomefname, optarg);
+                break;
+
            default:
                 printf("uknown argument");
                 abort();

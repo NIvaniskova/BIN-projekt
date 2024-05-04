@@ -617,7 +617,8 @@ int main(int argc, char *argv[]) {
 
 
     //save the solution
-    FILE *chrfil = fopen("result.chr", "wb");
+    //FILE *chrfil = fopen("result.chr", "wb");
+    FILE *chrfil = fopen(params.bestchromosomefname, "wb");
     print_chrom(chrfil, (chromosome) population[fittest_idx]);
     fclose(chrfil);
 
