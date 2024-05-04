@@ -31,13 +31,14 @@ typedef double nodetype;
 #include <vector>
 #include <iostream>
 #include <algorithm>
+#include <string>
 
 
 pchromosome population[MAX_POPSIZE];
 fitvaltype accuracies[MAX_POPSIZE];
 /// default parameters
 tparams params = {10 /*generations*/, 10 /*pop.size*/, 5 /*mut.genes*/, 0, 0, 5 /*cols*/, 3 /*rows*/, 1 /*lback*/,
-                  2, 1, 9 /*functions*/};
+                 2, 1, 9 /*functions*/};
 
 nodetype *nodeoutput; //array of node outputs used for CGP evaluation
 int *isused[MAX_POPSIZE]; //array of marked used nodes for each individual
@@ -389,9 +390,16 @@ int main(int argc, char *argv[]) {
     unsigned long int generation;
     fitvaltype bestaccval;
 
-    params.accfitval = 0;
+
     strcpy(params.datafname, "banknotes.txt");
     parse_options(argc, argv);
+
+    std::string output_filename(params.bestchromosomefname);
+    printf("----------------------------------------------------\n");
+    printf("PARAMS: cols = %d\t rows = %d\t lback = %d\t mutations = %d\t popsize = %d\t generations = %lu\t error = %f\n filename=%s\n",
+           params.cols, params.rows, params.lback, params.mutations, params.popsize, params.maxgenerations, params.accfitval, output_filename.c_str());
+    printf("----------------------------------------------------\n");
+
     ///load training data
     if ((data_items = parsefile(params.datafname, NULL, NULL, NULL)) < 1) {
         printf("Invalid data\n");
@@ -618,10 +626,11 @@ int main(int argc, char *argv[]) {
 
     //save the solution
     //FILE *chrfil = fopen("result.chr", "wb");
-    FILE *chrfil = fopen(params.bestchromosomefname, "wb");
+    FILE *chrfil = fopen(output_filename.c_str(), "wb");
     print_chrom(chrfil, (chromosome) population[fittest_idx]);
     fclose(chrfil);
 
 
+    printf("Saved to file\n");
     return 0;
 }

@@ -37,7 +37,7 @@ typedef struct {
   int geneoutidx;
   int chromosomesz;
   char datafname[128];
-  char bestchromosomefname[128];
+  char bestchromosomefname[256];
 } tparams;
 
 typedef struct { 
@@ -124,12 +124,12 @@ void parse_options(int argc, char* argv[])
     {
         if (i == -1) break;
         switch (i) {
-           case 'r': //number of CGP rows
-                params.rows = atoi(optarg);
+            case 'c': //number of CGP cols
+                params.cols = atoi(optarg);
                 break;
 
-           case 'c': //number of CGP cols
-                params.cols = atoi(optarg);
+           case 'r': //number of CGP rows
+                params.rows = atoi(optarg);
                 break;
 
            case 'm': //max. number of mutated genes
@@ -151,7 +151,8 @@ void parse_options(int argc, char* argv[])
            case 'e': //acceptable error
                 params.accfitval = atof(optarg);
                 break;
-            case 'f': //best chromosome fname
+
+           case 'f': //best chromosome fname
                 strcpy(params.bestchromosomefname, optarg);
                 break;
 
